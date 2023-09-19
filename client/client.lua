@@ -34,32 +34,32 @@ RegisterNetEvent('rsg-bossmenu:client:mainmenu', function()
     if not PlayerJob.name or not PlayerJob.isboss then return end
     lib.registerContext({
         id = 'boss_mainmenu',
-        title = 'Boss Menu',
+        title = Lang:t('lang_1'),
         options = {
             {
-                title = 'Manage Employees',
-                description = 'Check your Employees List',
+                title = Lang:t('lang_2'),
+                description = Lang:t('lang_3'),
                 icon = 'fa-solid fa-list',
                 event = 'rsg-bossmenu:client:employeelist',
                 arrow = true
             },
             {
-                title = 'Hire Employees',
-                description = 'Hire Nearby Civilians',
+                title = Lang:t('lang_4'),
+                description = Lang:t('lang_5'),
                 icon = 'fa-solid fa-hand-holding',
                 event = 'rsg-bossmenu:client:HireMenu',
                 arrow = true
             },
             {
-                title = "Storage Access",
-                description = "Open Storage",
+                title = Lang:t('lang_6'),
+                description = Lang:t('lang_7'),
                 icon = "fa-solid fa-box-open",
                 event = 'rsg-bossmenu:client:Stash',
                 arrow = true
             },
             {
-                title = "Money Management",
-                description = "Check your Company Balance",
+                title = Lang:t('lang_8'),
+                description = Lang:t('lang_9'),
                 icon = "fa-solid fa-sack-dollar",
                 event = 'rsg-bossmenu:client:SocietyMenu',
                 arrow = true
@@ -87,7 +87,7 @@ RegisterNetEvent('rsg-bossmenu:client:employeelist', function()
         end
         lib.registerContext({
             id = 'employeelist_menu',
-            title = 'Employee List',
+            title = Lang:t('lang_10'),
             menu = 'boss_mainmenu',
             onBack = function() end,
             position = 'top-right',
@@ -104,15 +104,15 @@ RegisterNetEvent('rsg-bossmenu:client:ManageEmployee', function(data)
     local options = {}
     for k, v in pairs(RSGCore.Shared.Jobs[data.work.name].grades) do
         options[#options + 1] = {
-            title = 'set grade as '..v.name,
-            description = "Grade: " .. k,
+            title = Lang:t('lang_11')..v.name,
+            description = Lang:t('lang_12') .. k,
             icon = 'fa-solid fa-file-pen',
             serverEvent = 'rsg-bossmenu:server:GradeUpdate',
             args = { cid = data.player.empSource, grade = tonumber(k), gradename = v.name }
         }
     end
     options[#options + 1] = {
-        title = "Fire Employee",
+        title = Lang:t('lang_13'),
         icon = "fa-solid fa-user-large-slash",
         serverEvent = 'rsg-bossmenu:server:FireEmployee',
         args = data.player.empSource,
@@ -120,7 +120,7 @@ RegisterNetEvent('rsg-bossmenu:client:ManageEmployee', function(data)
     }
     lib.registerContext({
         id = 'manageemployee_menu',
-        title = 'Manage Employee',
+        title = Lang:t('lang_14'),
         menu = 'employeelist_menu',
         onBack = function() end,
         position = 'top-right',
@@ -139,7 +139,7 @@ RegisterNetEvent('rsg-bossmenu:client:HireMenu', function()
             if v and v ~= PlayerId() then
                 options[#options + 1] = {
                     title = v.name,
-                    description = 'Citizen ID: ' .. v.citizenid .. ' - ID: ' .. v.sourceplayer,
+                    description = Lang:t('lang_15') .. v.citizenid .. Lang:t('lang_16') .. v.sourceplayer,
                     icon = 'fa-solid fa-user-check',
                     event = 'rsg-bossmenu:server:HireEmployee',
                     args = v.sourceplayer,
@@ -149,7 +149,7 @@ RegisterNetEvent('rsg-bossmenu:client:HireMenu', function()
         end
         lib.registerContext({
             id = 'hireemployees_menu',
-            title = 'Hire Employees',
+            title = Lang:t('lang_4'),
             menu = 'boss_mainmenu',
             onBack = function() end,
             position = 'top-right',
@@ -176,14 +176,13 @@ end)
 RegisterNetEvent('rsg-bossmenu:client:SocietyMenu', function()
     local currentmoney = RSGCore.Functions.GetPlayerData().money['cash']
     RSGCore.Functions.TriggerCallback('rsg-bossmenu:server:GetAccount', function(cb)
-        print(cb)
         lib.registerContext({
             id = 'society_menu',
-            title = "Balance: $" .. comma_value(cb),
+            title = Lang:t('lang_17') .. comma_value(cb),
             options = {
                 {
-                    title = 'Deposit',
-                    description = 'deposit money into your account',
+                    title = Lang:t('lang_18'),
+                    description = Lang:t('lang_19'),
                     icon = 'fa-solid fa-money-bill-transfer',
                     event = 'rsg-bossmenu:client:SocetyDeposit',
                     args = currentmoney,
@@ -191,8 +190,8 @@ RegisterNetEvent('rsg-bossmenu:client:SocietyMenu', function()
                     arrow = true
                 },
                 {
-                    title = 'Withdraw',
-                    description = 'withdraw money from your account',
+                    title = Lang:t('lang_20'),
+                    description = Lang:t('lang_21'),
                     icon = 'fa-solid fa-money-bill-transfer',
                     event = 'rsg-bossmenu:client:SocetyWithDraw',
                     args = comma_value(cb),
@@ -209,9 +208,9 @@ end)
 -- society deposit
 -------------------------------------------------------------------------------------------
 RegisterNetEvent('rsg-bossmenu:client:SocetyDeposit', function(money)
-    local input = lib.inputDialog('Available Balance: $' .. money, {
+    local input = lib.inputDialog(Lang:t('lang_22') .. money, {
         { 
-            label = 'Amount',
+            label = Lang:t('lang_23'),
             type = 'number',
             required = true,
             icon = 'fa-solid fa-dollar-sign'
@@ -225,9 +224,9 @@ end)
 -- society withdraw
 -------------------------------------------------------------------------------------------
 RegisterNetEvent('rsg-bossmenu:client:SocetyWithDraw', function(money)
-    local input = lib.inputDialog('Available Balance: $' .. money, {
+    local input = lib.inputDialog(Lang:t('lang_22') .. money, {
         { 
-            label = 'Amount',
+            label = Lang:t('lang_23'),
             type = 'number',
             required = true,
             icon = 'fa-solid fa-dollar-sign'

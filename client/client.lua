@@ -34,7 +34,7 @@ Citizen.CreateThread(function()
     for _, v in pairs(Config.BossLocations) do
         exports['rsg-core']:createPrompt(v.id, v.coords, RSGCore.Shared.Keybinds[Config.Keybind], 'Open '..v.name, {
             type = 'client',
-            event = 'rsg-bossmenu:client:mainmenu',
+            serverEvent = 'rsg-bossmenu:client:mainmenu',
             args = {},
         })
         if v.showblip == true then

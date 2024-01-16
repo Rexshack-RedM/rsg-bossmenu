@@ -32,18 +32,16 @@ end
 -------------------------------------------------------------------------------------------
 Citizen.CreateThread(function()
     for _, v in pairs(Config.BossLocations) do
-        if v ~= nil then
-            exports['rsg-core']:createPrompt(v.id, v.coords, RSGCore.Shared.Keybinds[Config.Keybind], 'Open '..v.name, {
-                type = 'client',
-                event = 'rsg-bossmenu:client:mainmenu',
-                args = {},
-            })
-            if v.showblip == true then
-                local BossMenuBlip = Citizen.InvokeNative(0x554D9D53F696D002, 1664425300, v.coords)
-                SetBlipSprite(BossMenuBlip,  joaat(Config.Blip.blipSprite), true)
-                SetBlipScale(Config.Blip.blipScale, 0.2)
-                Citizen.InvokeNative(0x9CB1A1623062F402, BossMenuBlip, Config.Blip.blipName)
-            end
+        exports['rsg-core']:createPrompt(v.id, v.coords, RSGCore.Shared.Keybinds[Config.Keybind], 'Open '..v.name, {
+            type = 'client',
+            event = 'rsg-bossmenu:client:mainmenu',
+            args = {},
+        })
+        if v.showblip == true then
+            local BossMenuBlip = Citizen.InvokeNative(0x554D9D53F696D002, 1664425300, v.coords)
+            SetBlipSprite(BossMenuBlip,  joaat(Config.Blip.blipSprite), true)
+            SetBlipScale(Config.Blip.blipScale, 0.2)
+            Citizen.InvokeNative(0x9CB1A1623062F402, BossMenuBlip, Config.Blip.blipName)
         end
     end
 end)

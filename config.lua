@@ -13,12 +13,10 @@ Config.Keybind = 'J'
 Config.BossLocations = {
 
     {   -- example
-        --[[
         id = 'boss1',
         name = 'Boss Menu',
-        coords = vector3(-274.88, 805.72, 119.37),
-        showblip = true
-        --]]
+        coords = vector3(0, 0, 0),
+        showblip = false
     },
 
 }

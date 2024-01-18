@@ -241,7 +241,6 @@ RegisterNetEvent('rsg-bossmenu:server:HireEmployee', function(recruit)
     if Target and Target.Functions.SetJob(Player.PlayerData.job.name, 0) then
         TriggerClientEvent('ox_lib:notify', src, {title = Lang:t('lang_46') .. (Target.PlayerData.charinfo.firstname .. ' ' .. Target.PlayerData.charinfo.lastname) .. Lang:t('lang_47') .. Player.PlayerData.job.label .. '', type = 'success', duration = 5000 })
         TriggerClientEvent('ox_lib:notify', src, {title = Target.PlayerData.source , Lang:t('lang_48') .. Player.PlayerData.job.label .. '', type = 'success', duration = 5000 })
-         
         TriggerEvent('rsg-log:server:CreateLog', 'bossmenu', Lang:t('lang_49'), 'lightgreen', (Player.PlayerData.charinfo.firstname .. ' ' .. Player.PlayerData.charinfo.lastname).. Lang:t('lang_50') .. (Target.PlayerData.charinfo.firstname .. ' ' .. Target.PlayerData.charinfo.lastname) .. ' (' .. Player.PlayerData.job.name .. ')', false)
     end
 end)

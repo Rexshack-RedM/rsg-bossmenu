@@ -88,9 +88,9 @@ RegisterNetEvent('rsg-bossmenu:server:withdrawMoney', function(amount)
     if RemoveMoney(job, amount) then
         Player.Functions.AddMoney('cash', amount, Lang:t('lang_24'))
         TriggerEvent('rsg-log:server:CreateLog', 'bossmenu', Lang:t('lang_25'), 'blue', Player.PlayerData.name.. Lang:t('lang_26') .. amount .. ' (' .. job .. ')', false)
-        TriggerClientEvent('RSGCore:Notify', src, Lang:t('lang_27') ..amount, 'success')
+        TriggerClientEvent('ox_lib:notify', src, {title = Lang:t('lang_27') ..amount, type = 'success', duration = 5000 })
     else
-        TriggerClientEvent('RSGCore:Notify', src, Lang:t('lang_28'), 'error')
+        TriggerClientEvent('ox_lib:notify', src, {title = Lang:t('lang_28'), type = 'error', duration = 5000 })
     end
 end)
 
@@ -107,9 +107,9 @@ RegisterNetEvent('rsg-bossmenu:server:depositMoney', function(amount)
         local job = Player.PlayerData.job.name
         AddMoney(job, amount)
         TriggerEvent('rsg-log:server:CreateLog', 'bossmenu', Lang:t('lang_29'), 'blue', Player.PlayerData.name.. Lang:t('lang_30') .. amount .. ' (' .. job .. ')', false)
-        TriggerClientEvent('RSGCore:Notify', src, Lang:t('lang_31') ..amount, 'success')
+        TriggerClientEvent('ox_lib:notify', src, {title = Lang:t('lang_31') ..amount, type = 'success', duration = 5000 })
     else
-        TriggerClientEvent('RSGCore:Notify', src, Lang:t('lang_32'), 'error')
+        TriggerClientEvent('ox_lib:notify', src, {title = Lang:t('lang_32'), type = 'error', duration = 5000 })
     end
 
     TriggerClientEvent('rsg-bossmenu:client:OpenMenu', src)
@@ -167,17 +167,17 @@ RegisterNetEvent('rsg-bossmenu:server:GradeUpdate', function(data)
     local Employee = RSGCore.Functions.GetPlayerByCitizenId(data.cid)
 
     if not Player.PlayerData.job.isboss then return end
-    if data.grade > Player.PlayerData.job.grade.level then TriggerClientEvent('RSGCore:Notify', src, Lang:t('lang_33'), "error") return end
+    if data.grade > Player.PlayerData.job.grade.level then TriggerClientEvent('ox_lib:notify', src, {title = Lang:t('lang_33'), type = 'error', duration = 5000 }) return end
     
     if Employee then
         if Employee.Functions.SetJob(Player.PlayerData.job.name, data.grade) then
-            TriggerClientEvent('RSGCore:Notify', src, Lang:t('lang_34'), 'success')
-            TriggerClientEvent('RSGCore:Notify', Employee.PlayerData.source, Lang:t('lang_35') ..data.gradename..'.', 'success')
+            TriggerClientEvent('ox_lib:notify', src, {title = Lang:t('lang_34'), type = 'success', duration = 5000 })
+            TriggerClientEvent('ox_lib:notify', src, {title = Employee.PlayerData.source, Lang:t('lang_35') ..data.gradename..'.', type = 'success', duration = 5000 })
         else
-            TriggerClientEvent('RSGCore:Notify', src, Lang:t('lang_36'), 'error')
+            TriggerClientEvent('ox_lib:notify', src, {title = Lang:t('lang_36'), type = 'error', duration = 5000 })
         end
     else
-        TriggerClientEvent('RSGCore:Notify', src, Lang:t('lang_37'), 'error')
+        TriggerClientEvent('ox_lib:notify', src, {title = Lang:t('lang_37'), type = 'error', duration = 5000 })
     end
 end)
 
@@ -193,23 +193,23 @@ RegisterNetEvent('rsg-bossmenu:server:FireEmployee', function(target)
 
     if Employee then
         if target ~= Player.PlayerData.citizenid then
-            if Employee.PlayerData.job.grade.level > Player.PlayerData.job.grade.level then TriggerClientEvent('RSGCore:Notify', src, Lang:t('lang_38'), 'error') return end
+            if Employee.PlayerData.job.grade.level > Player.PlayerData.job.grade.level then TriggerClientEvent('ox_lib:notify', src, {title = Lang:t('lang_38'), type = 'error', duration = 5000 }) return end
             if Employee.Functions.SetJob('unemployed', '0') then
                 TriggerEvent('rsg-log:server:CreateLog', 'bossmenu', Lang:t('lang_39'), 'red', Player.PlayerData.charinfo.firstname .. ' ' .. Player.PlayerData.charinfo.lastname .. Lang:t('lang_40') .. Employee.PlayerData.charinfo.firstname .. ' ' .. Employee.PlayerData.charinfo.lastname .. ' (' .. Player.PlayerData.job.name .. ')', false)
-                TriggerClientEvent('RSGCore:Notify', src, Lang:t('lang_41'), 'success')
-                TriggerClientEvent('RSGCore:Notify', Employee.PlayerData.source , Lang:t('lang_42'), 'error')
+                TriggerClientEvent('ox_lib:notify', src, {title = Lang:t('lang_41'), type = 'success', duration = 5000 })
+                TriggerClientEvent('ox_lib:notify', src, {title = Employee.PlayerData.source , Lang:t('lang_42'), type = 'error', duration = 5000 })
             else
-                TriggerClientEvent('RSGCore:Notify', src, Lang:t('lang_43'), 'error')
+                TriggerClientEvent('ox_lib:notify', src, {title = Lang:t('lang_43'), type = 'error', duration = 5000 })
             end
         else
-            TriggerClientEvent('RSGCore:Notify', src, Lang:t('lang_44'), 'error')
+            TriggerClientEvent('ox_lib:notify', src, {title = Lang:t('lang_44'), type = 'error', duration = 5000 })
         end
     else
         local player = MySQL.query.await('SELECT * FROM players WHERE citizenid = ? LIMIT 1', { target })
         if player[1] ~= nil then
             Employee = player[1]
             Employee.job = json.decode(Employee.job)
-            if Employee.job.grade.level > Player.PlayerData.job.grade.level then TriggerClientEvent('RSGCore:Notify', src, Lang:t('lang_45'), 'error') return end
+            if Employee.job.grade.level > Player.PlayerData.job.grade.level then TriggerClientEvent('ox_lib:notify', src, {title = Lang:t('lang_45'), type = 'error', duration = 5000 }) return end
             local job = {}
             job.name = 'unemployed'
             job.label = 'Unemployed'
@@ -220,10 +220,10 @@ RegisterNetEvent('rsg-bossmenu:server:FireEmployee', function(target)
             job.grade.name = nil
             job.grade.level = 0
             MySQL.update('UPDATE players SET job = ? WHERE citizenid = ?', { json.encode(job), target })
-            TriggerClientEvent('RSGCore:Notify', src, Lang:t('lang_41'), 'success')
+            TriggerClientEvent('ox_lib:notify', src, {title = Lang:t('lang_41'), type = 'success', duration = 5000 })
             TriggerEvent('rsg-log:server:CreateLog', 'bossmenu', Lang:t('lang_39'), 'red', Player.PlayerData.charinfo.firstname .. ' ' .. Player.PlayerData.charinfo.lastname .. Lang:t('lang_40') .. Employee.PlayerData.charinfo.firstname .. ' ' .. Employee.PlayerData.charinfo.lastname .. ' (' .. Player.PlayerData.job.name .. ')', false)
         else
-            TriggerClientEvent('RSGCore:Notify', src, Lang:t('lang_37'), 'error')
+            TriggerClientEvent('ox_lib:notify', src, {title = Lang:t('lang_37'), type = 'error', duration = 5000 })
         end
     end
 end)
@@ -239,8 +239,8 @@ RegisterNetEvent('rsg-bossmenu:server:HireEmployee', function(recruit)
     if not Player.PlayerData.job.isboss then return end
 
     if Target and Target.Functions.SetJob(Player.PlayerData.job.name, 0) then
-        TriggerClientEvent('RSGCore:Notify', src, Lang:t('lang_46') .. (Target.PlayerData.charinfo.firstname .. ' ' .. Target.PlayerData.charinfo.lastname) .. Lang:t('lang_47') .. Player.PlayerData.job.label .. '', 'success')
-        TriggerClientEvent('RSGCore:Notify', Target.PlayerData.source , Lang:t('lang_48') .. Player.PlayerData.job.label .. '', 'success')
+        TriggerClientEvent('ox_lib:notify', src, {title = Lang:t('lang_46') .. (Target.PlayerData.charinfo.firstname .. ' ' .. Target.PlayerData.charinfo.lastname) .. Lang:t('lang_47') .. Player.PlayerData.job.label .. '', type = 'success', duration = 5000 })
+        TriggerClientEvent('ox_lib:notify', src, {title = Target.PlayerData.source , Lang:t('lang_48') .. Player.PlayerData.job.label .. '', type = 'success', duration = 5000 })
         TriggerEvent('rsg-log:server:CreateLog', 'bossmenu', Lang:t('lang_49'), 'lightgreen', (Player.PlayerData.charinfo.firstname .. ' ' .. Player.PlayerData.charinfo.lastname).. Lang:t('lang_50') .. (Target.PlayerData.charinfo.firstname .. ' ' .. Target.PlayerData.charinfo.lastname) .. ' (' .. Player.PlayerData.job.name .. ')', false)
     end
 end)

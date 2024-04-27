@@ -50,6 +50,7 @@ local Translations = {
     lang_48 = 'You were hired as ',
     lang_49 = 'Recruit',
     lang_50 = ' successfully recruited ',
+    lang_51 = 'Open ',
 
 }
 

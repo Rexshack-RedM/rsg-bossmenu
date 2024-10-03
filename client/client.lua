@@ -182,11 +182,8 @@ end)
 -- boss stash
 -------------------------------------------------------------------------------------------
 RegisterNetEvent('rsg-bossmenu:client:Stash', function()
-    TriggerServerEvent("inventory:server:OpenInventory", "stash", "boss_" .. PlayerJob.name, {
-        maxweight = 4000000,
-        slots = 25,
-    })
-    TriggerEvent("inventory:client:SetCurrentStash", "boss_" .. PlayerJob.name)
+	local stashname = 'boss_' .. PlayerJob.name
+    TriggerServerEvent('rsg-bossmenu:server:openstash', stashname)
 end)
 
 -------------------------------------------------------------------------------------------

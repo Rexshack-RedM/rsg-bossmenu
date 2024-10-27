@@ -7,8 +7,6 @@ version '1.0.3'
 
 shared_scripts {
     '@ox_lib/init.lua',
-    '@rsg-core/shared/locale.lua',
-    'locales/en.lua', -- preferred language
     'config.lua',
 }
 
@@ -22,6 +20,10 @@ server_scripts {
     'server/versionchecker.lua'
 }
 
+files{
+    'locales/*.json',
+}
+
 server_exports {
     'AddMoney',
     'RemoveMoney',
@@ -30,6 +32,7 @@ server_exports {
 
 dependencies {
     'rsg-core',
+    'rsg-weapons',
     'ox_lib',
 }
 

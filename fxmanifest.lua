@@ -32,7 +32,6 @@ server_exports {
 
 dependencies {
     'rsg-core',
-    'rsg-weapons',
     'ox_lib',
 }
 

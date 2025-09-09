@@ -1,10 +1,23 @@
 local RSGCore = exports['rsg-core']:GetCoreObject()
 local PlayerJob = RSGCore.Functions.GetPlayerData().job
+local bossMenusBlips = {}
 lib.locale()
 
 AddEventHandler('onResourceStart', function(resource)
     if resource == GetCurrentResourceName() then
         PlayerJob = RSGCore.Functions.GetPlayerData().job
+    end
+end)
+
+
+AddEventHandler('onResourceStop', function(resource)
+    if resource == GetCurrentResourceName() then
+        for _, v in pairs(Config.BossLocations) do
+            exports['rsg-core']:deletePrompt(v.id)
+        end
+        for _, blip in pairs(bossMenusBlips) do
+            RemoveBlip(blip)
+        end
     end
 end)
 
@@ -43,6 +56,7 @@ CreateThread(function()
             SetBlipSprite(BossMenuBlip,  joaat(Config.Blip.blipSprite), true)
             SetBlipScale(BossMenuBlip, Config.Blip.blipScale)
             SetBlipName(BossMenuBlip, Config.Blip.blipName)
+            bossMenusBlips[#bossMenusBlips + 1] = BossMenuBlip
         end
     end
 end)

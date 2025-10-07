@@ -9,7 +9,6 @@ AddEventHandler('onResourceStart', function(resource)
     end
 end)
 
-
 AddEventHandler('onResourceStop', function(resource)
     if resource == GetCurrentResourceName() then
         for _, v in pairs(Config.BossLocations) do
@@ -100,7 +99,7 @@ RegisterNetEvent('rsg-bossmenu:client:mainmenu', function()
             },
         }
     })
-    lib.showContext("boss_mainmenu")
+    lib.showContext('boss_mainmenu')
 end)
 
 -------------------------------------------------------------------------------------------
@@ -209,6 +208,7 @@ RegisterNetEvent('rsg-bossmenu:client:SocietyMenu', function()
     RSGCore.Functions.TriggerCallback('rsg-bossmenu:server:GetAccount', function(cb)
         lib.registerContext({
             id = 'society_menu',
+            menu = 'boss_mainmenu',
             title = locale('cl_17')  .. ' $: ' .. comma_value(cb),
             options = {
                 {
@@ -231,7 +231,7 @@ RegisterNetEvent('rsg-bossmenu:client:SocietyMenu', function()
                 },
             }
         })
-        lib.showContext("society_menu")
+        lib.showContext('society_menu')
     end, PlayerJob.name)
 end)
 

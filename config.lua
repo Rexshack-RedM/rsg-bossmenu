@@ -17,6 +17,7 @@ Config.BossLocations = {
     {   -- example
         id = 'boss1',
         name = 'Boss Menu',
+        jobname = 'medic', -- Name of the job from rsg-core/shared/jobs.lua you want to be able to access the bossmenu (Only the isBoss = true grades will be able to acces it)
         coords = vector3(0, 0, 0),
         showblip = false
     },

@@ -48,7 +48,7 @@ CreateThread(function()
         exports['rsg-core']:createPrompt(v.id, v.coords, RSGCore.Shared.Keybinds[Config.Keybind], locale('cl_open').. ' ' .. v.name, {
             type = 'client',
             event = 'rsg-bossmenu:client:mainmenu',
-            args = {},
+            args = {v.jobname},
         })
         if v.showblip == true then
             local BossMenuBlip = BlipAddForCoords(1664425300, v.coords)
@@ -63,8 +63,10 @@ end)
 -------------------------------------------------------------------------------------------
 -- main menu
 -------------------------------------------------------------------------------------------
-RegisterNetEvent('rsg-bossmenu:client:mainmenu', function()
+RegisterNetEvent('rsg-bossmenu:client:mainmenu', function(jobname)
     if not PlayerJob.name or not PlayerJob.isboss then return end
+    if PlayerJob.name ~= jobname then return end
+    
     lib.registerContext({
         id = 'boss_mainmenu',
         title = locale('cl_1'),

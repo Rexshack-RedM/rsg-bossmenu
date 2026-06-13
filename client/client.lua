@@ -3,9 +3,39 @@ local PlayerJob = RSGCore.Functions.GetPlayerData().job
 local bossMenusBlips = {}
 lib.locale()
 
+local function RefreshPrompts()
+    for _, v in pairs(Config.BossLocations) do
+        exports['rsg-core']:deletePrompt(v.id)
+    end
+    for _, blip in pairs(bossMenusBlips) do
+        RemoveBlip(blip)
+    end
+    bossMenusBlips = {}
+
+    if not PlayerJob or not PlayerJob.isboss then return end
+
+    for _, v in pairs(Config.BossLocations) do
+        if not v.job or v.job == PlayerJob.name then
+            exports['rsg-core']:createPrompt(v.id, v.coords, RSGCore.Shared.Keybinds[Config.Keybind], locale('cl_open') .. ' ' .. v.name, {
+                type = 'client',
+                event = 'rsg-bossmenu:client:mainmenu',
+                args = {},
+            })
+            if v.showblip == true then
+                local BossMenuBlip = BlipAddForCoords(1664425300, v.coords)
+                SetBlipSprite(BossMenuBlip, joaat(Config.Blip.blipSprite), true)
+                SetBlipScale(BossMenuBlip, Config.Blip.blipScale)
+                SetBlipName(BossMenuBlip, Config.Blip.blipName)
+                bossMenusBlips[#bossMenusBlips + 1] = BossMenuBlip
+            end
+        end
+    end
+end
+
 AddEventHandler('onResourceStart', function(resource)
     if resource == GetCurrentResourceName() then
         PlayerJob = RSGCore.Functions.GetPlayerData().job
+        RefreshPrompts()
     end
 end)
 
@@ -22,10 +52,12 @@ end)
 
 RegisterNetEvent('RSGCore:Client:OnPlayerLoaded', function()
     PlayerJob = RSGCore.Functions.GetPlayerData().job
+    RefreshPrompts()
 end)
 
 RegisterNetEvent('RSGCore:Client:OnJobUpdate', function(JobInfo)
     PlayerJob = JobInfo
+    RefreshPrompts()
 end)
 
 local function comma_value(amount)
@@ -39,26 +71,6 @@ local function comma_value(amount)
     end
     return formatted
 end
-
--------------------------------------------------------------------------------------------
--- prompts and blips if needed
--------------------------------------------------------------------------------------------
-CreateThread(function()
-    for _, v in pairs(Config.BossLocations) do
-        exports['rsg-core']:createPrompt(v.id, v.coords, RSGCore.Shared.Keybinds[Config.Keybind], locale('cl_open').. ' ' .. v.name, {
-            type = 'client',
-            event = 'rsg-bossmenu:client:mainmenu',
-            args = {},
-        })
-        if v.showblip == true then
-            local BossMenuBlip = BlipAddForCoords(1664425300, v.coords)
-            SetBlipSprite(BossMenuBlip,  joaat(Config.Blip.blipSprite), true)
-            SetBlipScale(BossMenuBlip, Config.Blip.blipScale)
-            SetBlipName(BossMenuBlip, Config.Blip.blipName)
-            bossMenusBlips[#bossMenusBlips + 1] = BossMenuBlip
-        end
-    end
-end)
 
 -------------------------------------------------------------------------------------------
 -- main menu

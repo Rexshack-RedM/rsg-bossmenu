@@ -51,5 +51,7 @@
     "sv_47" : "przybył",
     "sv_48" : "Zostałeś zatrudniony jako",
     "sv_49" : "Rekrut",
-    "sv_50" : " pomyślnie zatrudniony "
+    "sv_50" : " pomyślnie zatrudniony ",
+    "sv_online" : "🟢",
+    "sv_offline" : "❌"
 }

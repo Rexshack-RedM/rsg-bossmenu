@@ -51,5 +51,7 @@
     "sv_47": "venez",
     "sv_48": "Vous avez été recruté en tant que",
     "sv_49": "Recrue",
-    "sv_50": "Recrutement réussi"
+    "sv_50": "Recrutement réussi",
+    "sv_online": "🟢",
+    "sv_offline": "❌"
 }

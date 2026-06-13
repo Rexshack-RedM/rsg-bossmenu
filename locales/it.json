@@ -51,5 +51,7 @@
     "sv_47" : "come",
     "sv_48" : "Sei stato assunto come",
     "sv_49" : "Recluta",
-    "sv_50" : "assunto con successo"
+    "sv_50" : "assunto con successo",
+    "sv_online" : "🟢",
+    "sv_offline" : "❌"
 }

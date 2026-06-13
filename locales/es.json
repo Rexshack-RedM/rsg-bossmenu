@@ -51,5 +51,7 @@
     "sv_47" : "ven",
     "sv_48" : "Te contrataron como",
     "sv_49" : "Recluta",
-    "sv_50" : "Reclutado con éxito"
+    "sv_50" : "Reclutado con éxito",
+    "sv_online" : "🟢",
+    "sv_offline" : "❌"
 }

@@ -51,5 +51,7 @@
     "sv_47" : "kommen",
     "sv_48" : "Du wurdest eingestellt als",
     "sv_49" : "Rekrut",
-    "sv_50" : "erfolgreich rekrutiert"
+    "sv_50" : "erfolgreich rekrutiert",
+    "sv_online" : "🟢",
+    "sv_offline" : "❌"
 }

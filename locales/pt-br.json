@@ -51,5 +51,7 @@
     "sv_47" : "como",
     "sv_48" : "Você foi contratado como",
     "sv_49" : "Recruta",
-    "sv_50" : " recrutado com sucesso "
+    "sv_50" : " recrutado com sucesso ",
+    "sv_online" : "🟢",
+    "sv_offline" : "❌"
 }

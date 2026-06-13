@@ -51,5 +51,7 @@
     "sv_47" : "přijít",
     "sv_48" : "Byl/a jste najat/a jako",
     "sv_49" : "Rekrut",
-    "sv_50" : " úspěšně naverbován/a "
+    "sv_50" : " úspěšně naverbován/a ",
+    "sv_online" : "🟢",
+    "sv_offline" : "❌"
 }

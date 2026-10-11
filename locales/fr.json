@@ -23,9 +23,7 @@
     "cl_22": "Solde disponible",
     "cl_23": "Montant",
     "cl_open": "Ouvrir",
-    
     "sv_storage": "Stockage du patron",
-    "sv_24": "Retirer depuis le menu du patron",
     "sv_25": "Retirer de l'argent",
     "sv_26": "Retirer",
     "sv_27": "Vous avez retiré",
@@ -46,12 +44,19 @@
     "sv_42": "Vous avez été licencié! Bonne chance.",
     "sv_43": "Erreur..",
     "sv_44": "Vous ne pouvez pas vous licencier vous-même",
-    "sv_45": "Vous ne pouvez pas licencier ce citoyen!",
     "sv_46": "Vous avez recruté",
     "sv_47": "venez",
     "sv_48": "Vous avez été recruté en tant que",
     "sv_49": "Recrue",
     "sv_50": "Recrutement réussi",
     "sv_online": "🟢",
-    "sv_offline": "❌"
+    "sv_offline": "❌",
+    "cl_no_employees": "No employees found",
+    "cl_no_nearby": "No one nearby to hire",
+    "cl_fire_confirm": "Are you sure you want to fire %s?",
+    "cl_cash": "Your Cash",
+    "sv_invalid_amount": "Invalid amount",
+    "sv_self": "You can't change your own grade",
+    "sv_not_employee": "This person does not work for you",
+    "sv_already_employed": "This person already works for you"
 }

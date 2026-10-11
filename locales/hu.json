@@ -23,9 +23,7 @@
     "cl_22": "Elérhetö Egyenleg",
     "cl_23": "Összeg",
     "cl_open": "Megnyitás",
-
     "sv_storage": "Vezetöi Raktár",
-    "sv_24": "Vezetöi menü - pénz kivétele",
     "sv_25": "Pénz Kivétele",
     "sv_26": "Kivét",
     "sv_27": "Kivettél ennyit:",
@@ -46,12 +44,19 @@
     "sv_42": "Elbocsátottak! Sok szerencsét.",
     "sv_43": "Hiba..",
     "sv_44": "Magadat nem bocsáthatod el",
-    "sv_45": "Ezt az állampolgárt nem lehet elbocsátani!",
     "sv_46": "Felvetted:",
     "sv_47": "jöjjön",
     "sv_48": "Felvettek mint:",
     "sv_49": "Újonc",
     "sv_50": " sikeresen felvéve",
     "sv_online": "🟢",
-    "sv_offline": "❌"
+    "sv_offline": "❌",
+    "cl_no_employees": "No employees found",
+    "cl_no_nearby": "No one nearby to hire",
+    "cl_fire_confirm": "Are you sure you want to fire %s?",
+    "cl_cash": "Your Cash",
+    "sv_invalid_amount": "Invalid amount",
+    "sv_self": "You can't change your own grade",
+    "sv_not_employee": "This person does not work for you",
+    "sv_already_employed": "This person already works for you"
 }

@@ -2,260 +2,257 @@ local RSGCore = exports['rsg-core']:GetCoreObject()
 local Accounts = {}
 lib.locale()
 
----------------
--- stash
-----------------
-RegisterNetEvent('rsg-bossmenu:server:openinventory', function(stashName)
-    local src = source
-    local Player = RSGCore.Functions.GetPlayer(src)
-    if not Player then return end
-    local data = { label = locale('sv_storage'), maxweight = Config.StorageMaxWeight, slots = Config.StorageMaxSlots }
-    exports['rsg-inventory']:OpenInventory(src, stashName, data)
-end)
+---------------------------------------------------------------------------
+-- helpers
+---------------------------------------------------------------------------
+local function Notify(src, title, description, nType)
+    TriggerClientEvent('ox_lib:notify', src, { title = title, description = description, type = nType or 'inform', duration = 5000 })
+end
 
----------------------
--- functions
----------------------
+local function FullName(charinfo)
+    return ('%s %s'):format(charinfo.firstname, charinfo.lastname)
+end
+
+-- returns the Player if they are a boss standing at one of their job's boss locations
+local function GetBossAtLocation(src)
+    local Player = RSGCore.Functions.GetPlayer(src)
+    if not Player or not Player.PlayerData.job.isboss then return end
+    local job = Player.PlayerData.job.name
+    local pCoords = GetEntityCoords(GetPlayerPed(src))
+    for _, v in ipairs(Config.BossLocations) do
+        if (not v.job or v.job == job) and #(pCoords - v.coords) <= Config.InteractDistance then
+            return Player
+        end
+    end
+end
+
+local function SanitizeAmount(amount)
+    amount = tonumber(amount)
+    if not amount or amount ~= amount or amount <= 0 or amount > Config.MaxTransaction then return end
+    return math.floor(amount * 100 + 0.5) / 100
+end
+
+---------------------------------------------------------------------------
+-- society account (also exported)
+---------------------------------------------------------------------------
 function GetAccount(account)
     return Accounts[account] or 0
 end
 
 function AddMoney(account, amount)
-    if not Accounts[account] then
-        Accounts[account] = 0
-    end
-
-    Accounts[account] = Accounts[account] + amount
-    MySQL.insert('INSERT INTO management_funds (job_name, amount, type) VALUES (:job_name, :amount, :type) ON DUPLICATE KEY UPDATE amount = :amount', { ['job_name'] = account, ['amount'] = Accounts[account], ['type'] = 'boss' })
+    amount = tonumber(amount)
+    if not account or not amount or amount <= 0 then return false end
+    Accounts[account] = (Accounts[account] or 0) + amount
+    MySQL.insert('INSERT INTO management_funds (job_name, amount, type) VALUES (?, ?, "boss") ON DUPLICATE KEY UPDATE amount = VALUES(amount)', { account, Accounts[account] })
+    return true
 end
 
 function RemoveMoney(account, amount)
-    local isRemoved = false
-    if amount > 0 then
-        if not Accounts[account] then
-            Accounts[account] = 0
-        end
-
-        if Accounts[account] >= amount then
-            Accounts[account] = Accounts[account] - amount
-            isRemoved = true
-        end
-
-        MySQL.update('UPDATE management_funds SET amount = ? WHERE job_name = ? and type = "boss"', { Accounts[account], account })
-    end
-    return isRemoved
+    amount = tonumber(amount)
+    if not account or not amount or amount <= 0 then return false end
+    if (Accounts[account] or 0) < amount then return false end
+    Accounts[account] = Accounts[account] - amount
+    MySQL.update('UPDATE management_funds SET amount = ? WHERE job_name = ? AND type = "boss"', { Accounts[account], account })
+    return true
 end
 
-MySQL.ready(function ()
-    local bossmenu = MySQL.query.await('SELECT job_name,amount FROM management_funds WHERE type = "boss"', {})
-    if not bossmenu then return end
-
-    for _,v in ipairs(bossmenu) do
+MySQL.ready(function()
+    local rows = MySQL.query.await('SELECT job_name, amount FROM management_funds WHERE type = "boss"')
+    if not rows then return end
+    for _, v in ipairs(rows) do
         Accounts[v.job_name] = v.amount
     end
 end)
 
--------------------------------------------------------------------------------------------
--- withdraw money
--------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------
+-- stash (name derived server-side from the boss's job)
+---------------------------------------------------------------------------
+RegisterNetEvent('rsg-bossmenu:server:openinventory', function()
+    local src = source
+    local Player = GetBossAtLocation(src)
+    if not Player then return end
+    exports['rsg-inventory']:OpenInventory(src, 'boss_' .. Player.PlayerData.job.name, {
+        label = locale('sv_storage'),
+        maxweight = Config.StorageMaxWeight,
+        slots = Config.StorageMaxSlots,
+    })
+end)
+
+---------------------------------------------------------------------------
+-- withdraw / deposit
+---------------------------------------------------------------------------
 RegisterNetEvent('rsg-bossmenu:server:withdrawMoney', function(amount)
     local src = source
-    local Player = RSGCore.Functions.GetPlayer(src)
-
-    if not Player or not Player.PlayerData.job.isboss then return end
-    amount = tonumber(amount)
-    if not amount or amount <= 0 then return end
+    local Player = GetBossAtLocation(src)
+    if not Player then return end
+    amount = SanitizeAmount(amount)
+    if not amount then return Notify(src, locale('cl_8'), locale('sv_invalid_amount'), 'error') end
 
     local job = Player.PlayerData.job.name
     if RemoveMoney(job, amount) then
-        Player.Functions.AddMoney('cash', amount, locale('sv_24'))
-        TriggerEvent('rsg-log:server:CreateLog', 'bossmenu', locale('sv_25'), 'blue', Player.PlayerData.name.. locale('sv_26') .. ' $'.. amount .. ' (' .. job .. ')', false)
-        TriggerClientEvent('ox_lib:notify', src, {title = locale('sv_27').. ': $ ' ..amount, type = 'success', duration = 5000 })
+        Player.Functions.AddMoney('cash', amount, 'bossmenu-withdraw')
+        TriggerEvent('rsg-log:server:CreateLog', 'bossmenu', locale('sv_25'), 'blue', ('%s %s $%s (%s)'):format(FullName(Player.PlayerData.charinfo), locale('sv_26'), amount, job), false)
+        Notify(src, locale('cl_8'), locale('sv_27') .. ': $' .. amount, 'success')
     else
-        TriggerClientEvent('ox_lib:notify', src, {title = locale('sv_28'), type = 'error', duration = 5000 })
+        Notify(src, locale('cl_8'), locale('sv_28'), 'error')
     end
+    TriggerClientEvent('rsg-bossmenu:client:SocietyMenu', src)
 end)
 
--------------------------------------------------------------------------------------------
--- deposit money
--------------------------------------------------------------------------------------------
 RegisterNetEvent('rsg-bossmenu:server:depositMoney', function(amount)
     local src = source
-    local Player = RSGCore.Functions.GetPlayer(src)
+    local Player = GetBossAtLocation(src)
+    if not Player then return end
+    amount = SanitizeAmount(amount)
+    if not amount then return Notify(src, locale('cl_8'), locale('sv_invalid_amount'), 'error') end
 
-    if not Player or not Player.PlayerData.job.isboss then return end
-    amount = tonumber(amount)
-    if not amount or amount <= 0 then return end
-
-    if Player.Functions.RemoveMoney('cash', amount) then
-        local job = Player.PlayerData.job.name
+    local job = Player.PlayerData.job.name
+    if Player.Functions.RemoveMoney('cash', amount, 'bossmenu-deposit') then
         AddMoney(job, amount)
-        TriggerEvent('rsg-log:server:CreateLog', 'bossmenu', locale('sv_29'), 'blue', Player.PlayerData.name.. locale('sv_30') .. ' $'.. amount .. ' (' .. job .. ')', false)
-        TriggerClientEvent('ox_lib:notify', src, {title = locale('sv_31') .. ': $ '..amount, type = 'success', duration = 5000 })
+        TriggerEvent('rsg-log:server:CreateLog', 'bossmenu', locale('sv_29'), 'blue', ('%s %s $%s (%s)'):format(FullName(Player.PlayerData.charinfo), locale('sv_30'), amount, job), false)
+        Notify(src, locale('cl_8'), locale('sv_31') .. ': $' .. amount, 'success')
     else
-        TriggerClientEvent('ox_lib:notify', src, {title = locale('sv_32'), type = 'error', duration = 5000 })
+        Notify(src, locale('cl_8'), locale('sv_32'), 'error')
     end
-
-    TriggerClientEvent('rsg-bossmenu:client:OpenMenu', src)
+    TriggerClientEvent('rsg-bossmenu:client:SocietyMenu', src)
 end)
 
-RSGCore.Functions.CreateCallback('rsg-bossmenu:server:GetAccount', function(_, cb, jobname)
-    local result = GetAccount(jobname)
-    cb(result)
+RSGCore.Functions.CreateCallback('rsg-bossmenu:server:GetAccount', function(source, cb)
+    local Player = RSGCore.Functions.GetPlayer(source)
+    if not Player or not Player.PlayerData.job.isboss then return cb(0) end
+    cb(GetAccount(Player.PlayerData.job.name))
 end)
 
--------------------------------------------------------------------------------------------
--- get employees
--------------------------------------------------------------------------------------------
-RSGCore.Functions.CreateCallback('rsg-bossmenu:server:GetEmployees', function(source, cb, jobname)
-    local src = source
-    local Player = RSGCore.Functions.GetPlayer(src)
+---------------------------------------------------------------------------
+-- employees
+---------------------------------------------------------------------------
+RSGCore.Functions.CreateCallback('rsg-bossmenu:server:GetEmployees', function(source, cb)
+    local Player = RSGCore.Functions.GetPlayer(source)
+    if not Player or not Player.PlayerData.job.isboss then return cb({}) end
 
-    if not Player or not Player.PlayerData.job.isboss then cb({}) return end
-
+    local jobname = Player.PlayerData.job.name
     local employees = {}
-    local players = MySQL.query.await("SELECT * FROM `players` WHERE `job` LIKE CONCAT('%', ?, '%')", { jobname })
-    if players[1] ~= nil then
-        for _, value in pairs(players) do
-            local isOnline = RSGCore.Functions.GetPlayerByCitizenId(value.citizenid)
-
-            if isOnline then
-                employees[#employees+1] = {
-                empSource = isOnline.PlayerData.citizenid,
-                grade = isOnline.PlayerData.job.grade,
-                isboss = isOnline.PlayerData.job.isboss,
-                name = locale('sv_online') .. ' ' .. isOnline.PlayerData.charinfo.firstname .. ' ' .. isOnline.PlayerData.charinfo.lastname
-                }
-            else
-                employees[#employees+1] = {
-                empSource = value.citizenid,
-                grade =  json.decode(value.job).grade,
-                isboss = json.decode(value.job).isboss,
-                name = locale('sv_offline') .. ' ' .. json.decode(value.charinfo).firstname .. ' ' .. json.decode(value.charinfo).lastname
-                }
-            end
-        end
-        table.sort(employees, function(a, b)
-            return a.grade.level > b.grade.level
-        end)
+    local rows = MySQL.query.await("SELECT citizenid, job, charinfo FROM players WHERE JSON_UNQUOTE(JSON_EXTRACT(job, '$.name')) = ?", { jobname }) or {}
+    for _, row in ipairs(rows) do
+        local online = RSGCore.Functions.GetPlayerByCitizenId(row.citizenid)
+        local job = online and online.PlayerData.job or json.decode(row.job)
+        local charinfo = online and online.PlayerData.charinfo or json.decode(row.charinfo)
+        employees[#employees + 1] = {
+            citizenid = row.citizenid,
+            grade = job.grade,
+            name = (online and locale('sv_online') or locale('sv_offline')) .. ' ' .. FullName(charinfo),
+        }
     end
+    table.sort(employees, function(a, b) return (tonumber(a.grade.level) or 0) > (tonumber(b.grade.level) or 0) end)
     cb(employees)
 end)
 
--------------------------------------------------------------------------------------------
--- grade update
--------------------------------------------------------------------------------------------
 RegisterNetEvent('rsg-bossmenu:server:GradeUpdate', function(data)
     local src = source
-    local Player = RSGCore.Functions.GetPlayer(src)
-    local Employee = RSGCore.Functions.GetPlayerByCitizenId(data.cid)
+    local Player = GetBossAtLocation(src)
+    if not Player or type(data) ~= 'table' then return end
 
-    if not Player or not Player.PlayerData.job.isboss then return end
-    if data.grade > Player.PlayerData.job.grade.level then TriggerClientEvent('ox_lib:notify', src, {title = locale('sv_33'), type = 'error', duration = 5000 }) return end
-    
-    if Employee then
-        if Employee.Functions.SetJob(Player.PlayerData.job.name, data.grade) then
-            TriggerClientEvent('ox_lib:notify', src, {title = locale('sv_34'), type = 'success', duration = 5000 })
-            TriggerClientEvent('ox_lib:notify', Employee.PlayerData.source, {title = locale('sv_35') .. ' ' .. data.gradename .. '.', type = 'success', duration = 5000 })
-        else
-            TriggerClientEvent('ox_lib:notify', src, {title = locale('sv_36'), type = 'error', duration = 5000 })
-        end
+    local job = Player.PlayerData.job
+    local grade = tonumber(data.grade)
+    local gradeData = grade and RSGCore.Shared.Jobs[job.name].grades[tostring(grade)]
+    if not gradeData then return Notify(src, locale('cl_14'), locale('sv_36'), 'error') end
+    if grade > job.grade.level then return Notify(src, locale('cl_14'), locale('sv_33'), 'error') end
+    if data.cid == Player.PlayerData.citizenid then return Notify(src, locale('cl_14'), locale('sv_self'), 'error') end
+
+    local Employee = RSGCore.Functions.GetPlayerByCitizenId(data.cid)
+    if not Employee then return Notify(src, locale('cl_14'), locale('sv_37'), 'error') end
+    if Employee.PlayerData.job.name ~= job.name then return Notify(src, locale('cl_14'), locale('sv_not_employee'), 'error') end
+    if Employee.PlayerData.job.grade.level > job.grade.level then return Notify(src, locale('cl_14'), locale('sv_33'), 'error') end
+
+    if Employee.Functions.SetJob(job.name, grade) then
+        Notify(src, locale('cl_14'), locale('sv_34'), 'success')
+        Notify(Employee.PlayerData.source, job.label, locale('sv_35') .. ' ' .. gradeData.name .. '.', 'success')
     else
-        TriggerClientEvent('ox_lib:notify', src, {title = locale('sv_37'), type = 'error', duration = 5000 })
+        Notify(src, locale('cl_14'), locale('sv_36'), 'error')
     end
 end)
 
--------------------------------------------------------------------------------------------
--- fire employee
--------------------------------------------------------------------------------------------
 RegisterNetEvent('rsg-bossmenu:server:FireEmployee', function(target)
     local src = source
-    local Player = RSGCore.Functions.GetPlayer(src)
+    local Player = GetBossAtLocation(src)
+    if not Player or type(target) ~= 'string' then return end
+
+    local job = Player.PlayerData.job
+    local bossName = FullName(Player.PlayerData.charinfo)
+    if target == Player.PlayerData.citizenid then return Notify(src, locale('cl_14'), locale('sv_44'), 'error') end
+
     local Employee = RSGCore.Functions.GetPlayerByCitizenId(target)
-
-    if not Player or not Player.PlayerData.job.isboss then return end
-
     if Employee then
-        if target ~= Player.PlayerData.citizenid then
-            if Employee.PlayerData.job.grade.level > Player.PlayerData.job.grade.level then TriggerClientEvent('ox_lib:notify', src, {title = locale('sv_38'), type = 'error', duration = 5000 }) return end
-            if Employee.Functions.SetJob('unemployed', '0') then
-                TriggerEvent('rsg-log:server:CreateLog', 'bossmenu', locale('sv_39'), 'red', Player.PlayerData.charinfo.firstname .. ' ' .. Player.PlayerData.charinfo.lastname .. ' '.. locale('sv_40') .. ' '.. Employee.PlayerData.charinfo.firstname .. ' ' .. Employee.PlayerData.charinfo.lastname .. ' (' .. Player.PlayerData.job.name .. ')', false)
-                TriggerClientEvent('ox_lib:notify', src, {title = locale('sv_41'), type = 'success', duration = 5000 })
-                TriggerClientEvent('ox_lib:notify', Employee.PlayerData.source, {title = locale('sv_42'), type = 'error', duration = 5000 })
-            else
-                TriggerClientEvent('ox_lib:notify', src, {title = locale('sv_43'), type = 'error', duration = 5000 })
-            end
-        else
-            TriggerClientEvent('ox_lib:notify', src, {title = locale('sv_44'), type = 'error', duration = 5000 })
-        end
-    else
-        local player = MySQL.query.await('SELECT * FROM players WHERE citizenid = ? LIMIT 1', { target })
-        if player[1] ~= nil then
-            local playerData = player[1]
-            local playerJob = json.decode(playerData.job)
-            if playerJob.grade.level > Player.PlayerData.job.grade.level then TriggerClientEvent('ox_lib:notify', src, {title = locale('sv_45'), type = 'error', duration = 5000 }) return end
-            local playerChar = json.decode(playerData.charinfo)
-            local job = {}
-            job.name = 'unemployed'
-            job.label = 'Unemployed'
-            job.payment = RSGCore.Shared.Jobs[job.name].grades['0'].payment or 500
-            job.onduty = true
-            job.isboss = false
-            job.grade = {}
-            job.grade.name = 'Unemployed'
-            job.grade.level = 0
-            MySQL.update('UPDATE players SET job = ? WHERE citizenid = ?', { json.encode(job), target })
-            TriggerClientEvent('ox_lib:notify', src, {title = locale('sv_41'), type = 'success', duration = 5000 })
-            TriggerEvent('rsg-log:server:CreateLog', 'bossmenu', locale('sv_39'), 'red', Player.PlayerData.charinfo.firstname .. ' ' .. Player.PlayerData.charinfo.lastname .. ' '.. locale('sv_40').. ' ' .. playerChar.firstname .. ' ' .. playerChar.lastname .. ' (' .. Player.PlayerData.job.name .. ')', false)
-        else
-            TriggerClientEvent('ox_lib:notify', src, {title = locale('sv_37'), type = 'error', duration = 5000 })
-        end
+        if Employee.PlayerData.job.name ~= job.name then return Notify(src, locale('cl_14'), locale('sv_not_employee'), 'error') end
+        if Employee.PlayerData.job.grade.level > job.grade.level then return Notify(src, locale('cl_14'), locale('sv_38'), 'error') end
+        if not Employee.Functions.SetJob('unemployed', 0) then return Notify(src, locale('cl_14'), locale('sv_43'), 'error') end
+        Notify(Employee.PlayerData.source, job.label, locale('sv_42'), 'error')
+        TriggerEvent('rsg-log:server:CreateLog', 'bossmenu', locale('sv_39'), 'red', ('%s %s %s (%s)'):format(bossName, locale('sv_40'), FullName(Employee.PlayerData.charinfo), job.name), false)
+        return Notify(src, locale('cl_14'), locale('sv_41'), 'success')
     end
+
+    local row = MySQL.single.await('SELECT job, charinfo FROM players WHERE citizenid = ? LIMIT 1', { target })
+    if not row then return Notify(src, locale('cl_14'), locale('sv_37'), 'error') end
+    local pJob = json.decode(row.job)
+    if pJob.name ~= job.name then return Notify(src, locale('cl_14'), locale('sv_not_employee'), 'error') end
+    if (tonumber(pJob.grade.level) or 0) > job.grade.level then return Notify(src, locale('cl_14'), locale('sv_38'), 'error') end
+
+    local unemployed = RSGCore.Shared.Jobs['unemployed']
+    local g0 = unemployed.grades['0']
+    MySQL.update('UPDATE players SET job = ? WHERE citizenid = ?', { json.encode({
+        name = 'unemployed', label = unemployed.label, payment = g0.payment or 0,
+        onduty = true, isboss = false, grade = { name = g0.name, level = 0 },
+    }), target })
+    TriggerEvent('rsg-log:server:CreateLog', 'bossmenu', locale('sv_39'), 'red', ('%s %s %s (%s)'):format(bossName, locale('sv_40'), FullName(json.decode(row.charinfo)), job.name), false)
+    Notify(src, locale('cl_14'), locale('sv_41'), 'success')
 end)
 
--------------------------------------------------------------------------------------------
--- hire employee
--------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------
+-- hire
+---------------------------------------------------------------------------
+local function IsNearby(src, target)
+    return #(GetEntityCoords(GetPlayerPed(src)) - GetEntityCoords(GetPlayerPed(target))) <= Config.HireDistance
+end
+
 RegisterNetEvent('rsg-bossmenu:server:HireEmployee', function(recruit)
     local src = source
-    local Player = RSGCore.Functions.GetPlayer(src)
+    local Player = GetBossAtLocation(src)
+    recruit = tonumber(recruit)
+    if not Player or not recruit or recruit == src then return end
+
     local Target = RSGCore.Functions.GetPlayer(recruit)
+    if not Target or not IsNearby(src, recruit) then return Notify(src, locale('cl_4'), locale('sv_37'), 'error') end
 
-    if not Player or not Player.PlayerData.job.isboss then return end
+    local job = Player.PlayerData.job
+    if Target.PlayerData.job.name == job.name then return Notify(src, locale('cl_4'), locale('sv_already_employed'), 'error') end
 
-    if Target and Target.Functions.SetJob(Player.PlayerData.job.name, 0) then
-        TriggerClientEvent('ox_lib:notify', src, {title = locale('sv_46') .. ' ' .. (Target.PlayerData.charinfo.firstname .. ' ' .. Target.PlayerData.charinfo.lastname) .. ' '.. locale('sv_47') .. ' '.. Player.PlayerData.job.label .. '', type = 'success', duration = 5000 })
-        TriggerClientEvent('ox_lib:notify', Target.PlayerData.source, {title = locale('sv_48') .. ' ' .. Player.PlayerData.job.label .. '', type = 'success', duration = 5000 })
-        TriggerEvent('rsg-log:server:CreateLog', 'bossmenu', locale('sv_49'), 'lightgreen', (Player.PlayerData.charinfo.firstname .. ' ' .. Player.PlayerData.charinfo.lastname).. ' '.. locale('sv_50') .. ' '.. (Target.PlayerData.charinfo.firstname .. ' ' .. Target.PlayerData.charinfo.lastname) .. ' (' .. Player.PlayerData.job.name .. ')', false)
+    if Target.Functions.SetJob(job.name, 0) then
+        local targetName = FullName(Target.PlayerData.charinfo)
+        Notify(src, locale('cl_4'), ('%s %s %s'):format(locale('sv_46'), targetName, job.label), 'success')
+        Notify(recruit, job.label, locale('sv_48') .. ' ' .. job.label, 'success')
+        TriggerEvent('rsg-log:server:CreateLog', 'bossmenu', locale('sv_49'), 'lightgreen', ('%s %s %s (%s)'):format(FullName(Player.PlayerData.charinfo), locale('sv_50'), targetName, job.name), false)
     end
 end)
 
--------------------------------------------------------------------------------------------
--- get closest player
--------------------------------------------------------------------------------------------
 RSGCore.Functions.CreateCallback('rsg-bossmenu:getplayers', function(source, cb)
     local src = source
+    local Player = RSGCore.Functions.GetPlayer(src)
+    if not Player or not Player.PlayerData.job.isboss then return cb({}) end
+
     local players = {}
-    local PlayerPed = GetPlayerPed(src)
-    local pCoords = GetEntityCoords(PlayerPed)
     for _, v in pairs(RSGCore.Functions.GetPlayers()) do
-        local targetped = GetPlayerPed(v)
-        local tCoords = GetEntityCoords(targetped)
-        local dist = #(pCoords - tCoords)
-        if PlayerPed ~= targetped and dist < 10 then
-            local ped = RSGCore.Functions.GetPlayer(v)
-            players[#players+1] = {
-            id = v,
-            coords = GetEntityCoords(targetped),
-            name = ped.PlayerData.charinfo.firstname .. ' ' .. ped.PlayerData.charinfo.lastname,
-            citizenid = ped.PlayerData.citizenid,
-            sources = GetPlayerPed(ped.PlayerData.source),
-            sourceplayer = ped.PlayerData.source
-            }
+        v = tonumber(v)
+        if v ~= src and IsNearby(src, v) then
+            local Target = RSGCore.Functions.GetPlayer(v)
+            if Target and Target.PlayerData.job.name ~= Player.PlayerData.job.name then
+                players[#players + 1] = {
+                    name = FullName(Target.PlayerData.charinfo),
+                    citizenid = Target.PlayerData.citizenid,
+                    sourceplayer = v,
+                }
+            end
         end
     end
-        table.sort(players, function(a, b)
-            return a.name < b.name
-        end)
+    table.sort(players, function(a, b) return a.name < b.name end)
     cb(players)
 end)

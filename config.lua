@@ -11,6 +11,9 @@ Config.Blip = {
 Config.Keybind = 'J'
 Config.StorageMaxWeight = 4000000
 Config.StorageMaxSlots = 50
+Config.InteractDistance = 5.0   -- max distance from a boss location for server actions
+Config.HireDistance = 10.0      -- max distance to a player you can hire
+Config.MaxTransaction = 1000000 -- max single deposit/withdraw
 
 Config.BossLocations = {
     {

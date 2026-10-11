@@ -40,14 +40,9 @@ AddEventHandler('onResourceStart', function(resource)
 end)
 
 AddEventHandler('onResourceStop', function(resource)
-    if resource == GetCurrentResourceName() then
-        for _, v in pairs(Config.BossLocations) do
-            exports['rsg-core']:deletePrompt(v.id)
-        end
-        for _, blip in pairs(bossMenusBlips) do
-            RemoveBlip(blip)
-        end
-    end
+    if resource ~= GetCurrentResourceName() then return end
+    PlayerJob = nil
+    RefreshPrompts()
 end)
 
 RegisterNetEvent('RSGCore:Client:OnPlayerLoaded', function()
@@ -61,220 +56,161 @@ RegisterNetEvent('RSGCore:Client:OnJobUpdate', function(JobInfo)
 end)
 
 local function comma_value(amount)
-    local formatted = amount
-    while true do
-        local k
-        formatted, k = string.gsub(formatted, "^(-?%d+)(%d%d%d)", '%1,%2')
-        if (k == 0) then
-            break
-        end
-    end
+    local formatted = tostring(amount)
+    local k
+    repeat
+        formatted, k = formatted:gsub('^(-?%d+)(%d%d%d)', '%1,%2')
+    until k == 0
     return formatted
+end
+
+local function IsBoss()
+    return PlayerJob and PlayerJob.name and PlayerJob.isboss
 end
 
 -------------------------------------------------------------------------------------------
 -- main menu
 -------------------------------------------------------------------------------------------
 RegisterNetEvent('rsg-bossmenu:client:mainmenu', function()
-    if not PlayerJob.name or not PlayerJob.isboss then return end
+    if not IsBoss() then return end
     lib.registerContext({
         id = 'boss_mainmenu',
         title = locale('cl_1'),
         options = {
-            {
-                title = locale('cl_2'),
-                description = locale('cl_3'),
-                icon = 'fa-solid fa-list',
-                event = 'rsg-bossmenu:client:employeelist',
-                arrow = true
-            },
-            {
-                title = locale('cl_4'),
-                description = locale('cl_5'),
-                icon = 'fa-solid fa-hand-holding',
-                event = 'rsg-bossmenu:client:HireMenu',
-                arrow = true
-            },
-            {
-                title = locale('cl_6'),
-                description = locale('cl_7'),
-                icon = "fa-solid fa-box-open",
-                event = 'rsg-bossmenu:client:Stash',
-                arrow = true
-            },
-            {
-                title = locale('cl_8'),
-                description = locale('cl_9'),
-                icon = "fa-solid fa-sack-dollar",
-                event = 'rsg-bossmenu:client:SocietyMenu',
-                arrow = true
-            },
+            { title = locale('cl_2'), description = locale('cl_3'), icon = 'fa-solid fa-list', event = 'rsg-bossmenu:client:employeelist', arrow = true },
+            { title = locale('cl_4'), description = locale('cl_5'), icon = 'fa-solid fa-hand-holding', event = 'rsg-bossmenu:client:HireMenu', arrow = true },
+            { title = locale('cl_6'), description = locale('cl_7'), icon = 'fa-solid fa-box-open', serverEvent = 'rsg-bossmenu:server:openinventory' },
+            { title = locale('cl_8'), description = locale('cl_9'), icon = 'fa-solid fa-sack-dollar', event = 'rsg-bossmenu:client:SocietyMenu', arrow = true },
         }
     })
     lib.showContext('boss_mainmenu')
 end)
 
 -------------------------------------------------------------------------------------------
--- employee menu
+-- employee list
 -------------------------------------------------------------------------------------------
 RegisterNetEvent('rsg-bossmenu:client:employeelist', function()
+    if not IsBoss() then return end
     RSGCore.Functions.TriggerCallback('rsg-bossmenu:server:GetEmployees', function(result)
         local options = {}
-        for _, v in pairs(result) do
+        for _, v in ipairs(result) do
             options[#options + 1] = {
                 title = v.name,
                 description = v.grade.name,
                 icon = 'fa-solid fa-circle-user',
                 event = 'rsg-bossmenu:client:ManageEmployee',
-                args = { player = v, work = PlayerJob },
+                args = v,
                 arrow = true,
             }
         end
-        lib.registerContext({
-            id = 'employeelist_menu',
-            title = locale('cl_10'),
-            menu = 'boss_mainmenu',
-            onBack = function() end,
-            position = 'top-right',
-            options = options
-        })
+        if #options == 0 then
+            options[1] = { title = locale('cl_no_employees'), icon = 'fa-solid fa-circle-info', disabled = true }
+        end
+        lib.registerContext({ id = 'employeelist_menu', title = locale('cl_10'), menu = 'boss_mainmenu', position = 'top-right', options = options })
         lib.showContext('employeelist_menu')
-    end, PlayerJob.name)
+    end)
 end)
 
 -------------------------------------------------------------------------------------------
--- manage employees
+-- manage employee
 -------------------------------------------------------------------------------------------
-RegisterNetEvent('rsg-bossmenu:client:ManageEmployee', function(data)
+RegisterNetEvent('rsg-bossmenu:client:ManageEmployee', function(employee)
+    if not IsBoss() then return end
+    local grades = {}
+    for k, v in pairs(RSGCore.Shared.Jobs[PlayerJob.name].grades) do
+        local level = tonumber(k)
+        if level and level <= PlayerJob.grade.level then
+            grades[#grades + 1] = { level = level, name = v.name }
+        end
+    end
+    table.sort(grades, function(a, b) return a.level < b.level end)
+
     local options = {}
-    for k, v in pairs(RSGCore.Shared.Jobs[data.work.name].grades) do
+    for _, g in ipairs(grades) do
+        local current = tonumber(employee.grade.level) == g.level
         options[#options + 1] = {
-            title = locale('cl_11').. ' ' .. v.name,
-            description = locale('cl_12').. ': ' .. k,
-            icon = 'fa-solid fa-file-pen',
+            title = locale('cl_11') .. ' ' .. g.name,
+            description = locale('cl_12') .. ': ' .. g.level,
+            icon = current and 'fa-solid fa-check' or 'fa-solid fa-file-pen',
+            disabled = current,
             serverEvent = 'rsg-bossmenu:server:GradeUpdate',
-            args = { cid = data.player.empSource, grade = tonumber(k), gradename = v.name }
+            args = { cid = employee.citizenid, grade = g.level },
         }
     end
     options[#options + 1] = {
         title = locale('cl_13'),
-        icon = "fa-solid fa-user-large-slash",
-        serverEvent = 'rsg-bossmenu:server:FireEmployee',
-        args = data.player.empSource,
-        iconColor = 'red'
+        icon = 'fa-solid fa-user-large-slash',
+        iconColor = 'red',
+        onSelect = function()
+            local ok = lib.alertDialog({ header = locale('cl_13'), content = locale('cl_fire_confirm', employee.name), centered = true, cancel = true })
+            if ok == 'confirm' then TriggerServerEvent('rsg-bossmenu:server:FireEmployee', employee.citizenid) end
+        end,
     }
-    lib.registerContext({
-        id = 'manageemployee_menu',
-        title = locale('cl_14'),
-        menu = 'employeelist_menu',
-        onBack = function() end,
-        position = 'top-right',
-        options = options
-    })
+    lib.registerContext({ id = 'manageemployee_menu', title = employee.name, menu = 'employeelist_menu', position = 'top-right', options = options })
     lib.showContext('manageemployee_menu')
 end)
 
 -------------------------------------------------------------------------------------------
--- hire employees
+-- hire
 -------------------------------------------------------------------------------------------
 RegisterNetEvent('rsg-bossmenu:client:HireMenu', function()
+    if not IsBoss() then return end
     RSGCore.Functions.TriggerCallback('rsg-bossmenu:getplayers', function(players)
         local options = {}
-        for _, v in pairs(players) do
-            if v and v ~= PlayerId() then
-                options[#options + 1] = {
-                    title = v.name,
-                    description = locale('cl_15') .. ': ' .. v.citizenid .. ' - ' .. locale('cl_16').. ': '  .. v.sourceplayer,
-                    icon = 'fa-solid fa-user-check',
-                    serverEvent = 'rsg-bossmenu:server:HireEmployee',
-                    args = v.sourceplayer,
-                    arrow = true
-                }
-            end
+        for _, v in ipairs(players) do
+            options[#options + 1] = {
+                title = v.name,
+                description = locale('cl_15') .. ': ' .. v.citizenid .. ' - ' .. locale('cl_16') .. ': ' .. v.sourceplayer,
+                icon = 'fa-solid fa-user-check',
+                serverEvent = 'rsg-bossmenu:server:HireEmployee',
+                args = v.sourceplayer,
+            }
         end
-        lib.registerContext({
-            id = 'hireemployees_menu',
-            title = locale('cl_4'),
-            menu = 'boss_mainmenu',
-            onBack = function() end,
-            position = 'top-right',
-            options = options
-        })
+        if #options == 0 then
+            options[1] = { title = locale('cl_no_nearby'), icon = 'fa-solid fa-circle-info', disabled = true }
+        end
+        lib.registerContext({ id = 'hireemployees_menu', title = locale('cl_4'), menu = 'boss_mainmenu', position = 'top-right', options = options })
         lib.showContext('hireemployees_menu')
     end)
 end)
 
 -------------------------------------------------------------------------------------------
--- boss stash
--------------------------------------------------------------------------------------------
-RegisterNetEvent('rsg-bossmenu:client:Stash', function()
-    local stashName = 'boss_'..PlayerJob.name
-    TriggerServerEvent('rsg-bossmenu:server:openinventory', stashName)
-end)
-
--------------------------------------------------------------------------------------------
 -- society menu
 -------------------------------------------------------------------------------------------
+local function AmountDialog(header)
+    local input = lib.inputDialog(header, {
+        { label = locale('cl_23'), type = 'number', required = true, min = 1, icon = 'fa-solid fa-dollar-sign' },
+    })
+    return input and tonumber(input[1])
+end
+
 RegisterNetEvent('rsg-bossmenu:client:SocietyMenu', function()
-    local currentmoney = RSGCore.Functions.GetPlayerData().money['cash']
-    RSGCore.Functions.TriggerCallback('rsg-bossmenu:server:GetAccount', function(cb)
+    if not IsBoss() then return end
+    RSGCore.Functions.TriggerCallback('rsg-bossmenu:server:GetAccount', function(balance)
+        local cash = RSGCore.Functions.GetPlayerData().money['cash'] or 0
         lib.registerContext({
             id = 'society_menu',
             menu = 'boss_mainmenu',
-            title = locale('cl_17')  .. ' $: ' .. comma_value(cb),
+            title = locale('cl_17') .. ': $' .. comma_value(balance),
             options = {
                 {
-                    title = locale('cl_18'),
-                    description = locale('cl_19'),
-                    icon = 'fa-solid fa-money-bill-transfer',
-                    event = 'rsg-bossmenu:client:SocetyDeposit',
-                    args = currentmoney,
-                    iconColor = 'green',
-                    arrow = true
+                    title = locale('cl_18'), description = locale('cl_19'),
+                    icon = 'fa-solid fa-money-bill-transfer', iconColor = 'green',
+                    onSelect = function()
+                        local amount = AmountDialog(locale('cl_cash') .. ': $' .. comma_value(cash))
+                        if amount then TriggerServerEvent('rsg-bossmenu:server:depositMoney', amount) end
+                    end,
                 },
                 {
-                    title = locale('cl_20'),
-                    description = locale('cl_21'),
-                    icon = 'fa-solid fa-money-bill-transfer',
-                    event = 'rsg-bossmenu:client:SocetyWithDraw',
-                    args = comma_value(cb),
-                    iconColor = 'red',
-                    arrow = true
+                    title = locale('cl_20'), description = locale('cl_21'),
+                    icon = 'fa-solid fa-money-bill-transfer', iconColor = 'red',
+                    onSelect = function()
+                        local amount = AmountDialog(locale('cl_22') .. ': $' .. comma_value(balance))
+                        if amount then TriggerServerEvent('rsg-bossmenu:server:withdrawMoney', amount) end
+                    end,
                 },
             }
         })
         lib.showContext('society_menu')
-    end, PlayerJob.name)
-end)
-
--------------------------------------------------------------------------------------------
--- society deposit
--------------------------------------------------------------------------------------------
-RegisterNetEvent('rsg-bossmenu:client:SocetyDeposit', function(money)
-    local input = lib.inputDialog(locale('cl_22') .. ': $ '  .. money, {
-        {
-            label = locale('cl_23'),
-            type = 'number',
-            required = true,
-            icon = 'fa-solid fa-dollar-sign'
-        },
-    })
-    if not input then return end
-    TriggerServerEvent("rsg-bossmenu:server:depositMoney", tonumber(input[1]))
-end)
-
--------------------------------------------------------------------------------------------
--- society withdraw
--------------------------------------------------------------------------------------------
-RegisterNetEvent('rsg-bossmenu:client:SocetyWithDraw', function(money)
-    local input = lib.inputDialog(locale('cl_22') .. ': $ '  .. money, {
-        {
-            label = locale('cl_23'),
-            type = 'number',
-            required = true,
-            icon = 'fa-solid fa-dollar-sign'
-        },
-    })
-    if not input then return end
-    TriggerServerEvent("rsg-bossmenu:server:withdrawMoney", tonumber(input[1]))
+    end)
 end)

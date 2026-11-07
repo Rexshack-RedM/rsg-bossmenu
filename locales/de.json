@@ -58,5 +58,9 @@
     "sv_invalid_amount": "Invalid amount",
     "sv_self": "You can't change your own grade",
     "sv_not_employee": "This person does not work for you",
-    "sv_already_employed": "This person already works for you"
+    "sv_already_employed": "This person already works for you",
+    "cl_confirm": "Confirm",
+    "cl_cancel": "Cancel",
+    "cl_accept": "Accept",
+    "cl_current": "current"
 }

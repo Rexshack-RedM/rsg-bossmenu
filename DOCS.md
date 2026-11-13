@@ -83,4 +83,4 @@ Every action re-checks the real job and boss status on the server. The stash nam
 | Money won't load | Check the `management_funds` table exists |
 | Can't hire | Target must be within `HireDistance` |
 
-Support: https://buymeacoffee.com/rexshack
+Support the Project : https://rexshack.tebex.store/

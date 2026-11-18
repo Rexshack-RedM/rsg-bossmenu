@@ -84,3 +84,71 @@ Every action re-checks the real job and boss status on the server. The stash nam
 | Can't hire | Target must be within `HireDistance` |
 
 Support the Project : https://rexshack.tebex.store/
+
+<!-- BEGIN AUTO-REFERENCE (generated from the code; re-run the generator instead of editing by hand) -->
+
+## Technical reference
+
+Generated from the source of **rsg-bossmenu 3.0.1**. Names, arguments and defaults below are read straight from the code.
+
+### Dependencies
+
+`rsg-core`, `oxmysql`, `rsg-inventory`
+
+### Configuration
+
+| Option | Default | Notes |
+|---|---|---|
+| `Config.Blip` | `table` | blip settings |
+| `Config.Keybind` | `'J'` | settings |
+| `Config.StorageMaxWeight` | `4000000` |  |
+| `Config.StorageMaxSlots` | `50` |  |
+| `Config.InteractDistance` | `5.0` | max distance from a boss location for server actions |
+| `Config.HireDistance` | `10.0` | max distance to a player you can hire |
+| `Config.MaxTransaction` | `1000000` | max single deposit/withdraw |
+| `Config.BossLocations` | `table` |  |
+
+### Callbacks
+
+| Callback | Side | Arguments | File |
+|---|---|---|---|
+| `rsg-bossmenu:server:GetAccount` | server | `source, cb` | `server/server.lua` |
+| `rsg-bossmenu:server:GetEmployees` | server | `source, cb` | `server/server.lua` |
+| `rsg-bossmenu:server:GetNearbyPlayers` | server | `source, cb` | `server/server.lua` |
+
+```lua
+-- client side
+RSGCore.Functions.TriggerCallback('rsg-bossmenu:server:GetAccount', function(result)
+    -- use result
+end)
+```
+
+### Events
+
+Server events can be fired by any client, so every handler re-validates the player, the arguments and any permission, distance or cooldown on the server. Never add a reward to a handler without those checks.
+
+| Event | Side | Arguments | File |
+|---|---|---|---|
+| `RSGCore:Client:OnPlayerLoaded` | client | `` | `client/client.lua` |
+| `RSGCore:Client:OnPlayerUnload` | client | `` | `client/client.lua` |
+| `RSGCore:Client:OnJobUpdate` | client | `JobInfo` | `client/client.lua` |
+| `rsg-bossmenu:client:mainmenu` | client | `` | `client/client.lua` |
+| `rsg-bossmenu:server:openinventory` | server | `` | `server/server.lua` |
+| `rsg-bossmenu:server:withdrawMoney` | server | `amount` | `server/server.lua` |
+| `rsg-bossmenu:server:depositMoney` | server | `amount` | `server/server.lua` |
+| `rsg-bossmenu:server:GradeUpdate` | server | `data` | `server/server.lua` |
+| `rsg-bossmenu:server:FireEmployee` | server | `target` | `server/server.lua` |
+| `rsg-bossmenu:server:HireEmployee` | server | `recruit` | `server/server.lua` |
+
+```lua
+-- from a client script
+TriggerServerEvent('rsg-bossmenu:server:openinventory')
+-- from a server script
+TriggerClientEvent('RSGCore:Client:OnPlayerLoaded', source)
+```
+
+### Locales
+
+Language files in `locales/`: `cs`, `de`, `el`, `en`, `es`, `fr`, `hu`, `it`, `ja`, `nl`, `pl`, `pt-br`, `ro`. Set the language with `setr rsg:locale "en"`.
+
+<!-- END AUTO-REFERENCE -->

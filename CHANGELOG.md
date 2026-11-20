@@ -2,6 +2,11 @@
 
 All notable changes to rsg-bossmenu. Newest first.
 
+## Unreleased
+
+### Removed
+- Unused locale keys (all languages): `cl_10`, `cl_23`, `sv_47`, `sv_online`, `sv_offline`, `cl_cash`.
+
 ## 3.0.2
 
 ### Added
